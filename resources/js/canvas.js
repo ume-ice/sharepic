@@ -1,17 +1,18 @@
-console.log('start canvas');
-//canvasの読み込み設定
-var canvas = $('#canvas')[0];
+var canvas = $('#new-canvas')[0];
 var ctx = canvas.getContext("2d");
 
-if (send_data) {
-  var canvas2 = $('#canvas2')[0];
-  var ctx2 = canvas2.getContext("2d");
-  var baseImage = new Image();
-  baseImage.src = send_data;
-  baseImage.onload = function() {
-    ctx2.drawImage(baseImage, 0, 0);
+var listCanvas = [];
+var listCanvasCtx = [];
+var baseImage = [];
+$.each(pictures, function(i, p) {
+  listCanvas[i] = $('#canvas-' + p.id)[0];
+  listCanvasCtx[i] = listCanvas[i].getContext("2d");
+  baseImage[i] = new Image();
+  baseImage[i].src = p.data;
+  baseImage[i].onload = function() {
+    listCanvasCtx[i].drawImage(baseImage[i], 0, 0);
   }
-}
+});
 
 $('#reset').click(function() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -19,7 +20,7 @@ $('#reset').click(function() {
 });
 
 $('#save').click(function() {
-  $('[name="text"]').val(canvas.toDataURL());
+  $('[name="canvas_data"]').val(canvas.toDataURL());
 });
 
 //マウスを操作する
@@ -33,7 +34,7 @@ var mouse = {
 var draw = false;
 
 //マウスの座標を取得する
-$('#canvas').on('mousemove', function(e) {
+$('#new-canvas').on('mousemove', function(e) {
   var rect = e.target.getBoundingClientRect();
 
   ctx.lineWidth = 10;
@@ -55,7 +56,7 @@ $('#canvas').on('mousemove', function(e) {
 });
 
 //クリックしたら描画をOKの状態にする
-$('#canvas').on('mousedown', function(e) {
+$('#new-canvas').on('mousedown', function(e) {
   draw = true;
   mouseX1 = mouseX;
   mouseY1 = mouseY;

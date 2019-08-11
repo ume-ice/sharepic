@@ -8,25 +8,32 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Model\Picture;
 
-class PictureNewController extends BaseController
+class HomeController extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
     public function getAction()
     {
+        $pictures = Picture::get();
 
-        return view('picture_new');
+        return view('home', [
+            'pictures' => $pictures,
+        ]);
     }
 
     public function postAction(Request $request)
     {
-        $canvas = $request->input('text');
+        $canvas_data = $request->input('canvas_data');
 
-        return view('picture_new', [
-            'canvas' => $canvas,
+        $picture = Picture::create([
+            'user_id' => 1,
+            'data'    => $canvas_data,
+            'status'  => 'black-published'
         ]);
 
+        return redirect()->route('new-picture');
     }
 
 }

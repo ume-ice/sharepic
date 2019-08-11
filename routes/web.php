@@ -15,9 +15,7 @@ if(config('app.env') === 'production'){
     URL::forceScheme('https');
 }
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', function () {return view('welcome');});
 
-Route::get('/picture/new', 'PictureNewController@getAction');
-Route::post('/picture/new', 'PictureNewController@postAction');
+Route::get('/home', 'HomeController@getAction')->name('new-picture');
+Route::post('/home', 'HomeController@postAction');

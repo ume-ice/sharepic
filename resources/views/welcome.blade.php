@@ -77,8 +77,6 @@
                         @endif
                     @endauth
                 </div>
-            @else
-                false
             @endif
 
             <div class="content">
