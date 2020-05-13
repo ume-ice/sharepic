@@ -19,7 +19,7 @@ class CreatePictureTable extends Migration
             $table->char('title', 50)->default('なし');
             $table->text('data');
             $table->char('status', 20);
-            $table->dateTime('publised_at')->nullable();
+            $table->timestamp('published_at')->nullable();
             $table->timestamps();
         });
     }

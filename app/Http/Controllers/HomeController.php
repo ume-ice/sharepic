@@ -16,7 +16,7 @@ class HomeController extends BaseController
 
     public function getAction()
     {
-        $pictures = Picture::get();
+        $pictures = Picture::orderBy('published_at', 'desc')->get();
 
         return view('home', [
             'pictures' => $pictures,
@@ -25,13 +25,18 @@ class HomeController extends BaseController
 
     public function postAction(Request $request)
     {
+        $title       = $request->input('title');
         $canvas_data = $request->input('canvas_data');
 
-        $picture = Picture::create([
-            'user_id' => 1,
-            'data'    => $canvas_data,
-            'status'  => 'black-published'
-        ]);
+        $picture = [
+            'user_id'      => 1,
+            'title'        => $title ? $title : 'なし',
+            'data'         => $canvas_data,
+            'status'       => 'black-published',
+            'published_at' => date('Y-m-d H:i:s'),
+        ];
+
+        $picture = Picture::create($picture);
 
         return redirect()->route('new-picture');
     }
