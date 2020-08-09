@@ -3,10 +3,58 @@
 
 function initNewCanvas(self) {
   var canvas = $('#new-canvas')[0];
+  var ctx = canvas.getContext("2d")
   self.canvas = canvas;
-  self.ctx = canvas.getContext("2d");
+  self.ctx = ctx;
   self.ctx.lineWidth = 10;
   self.ctx.globalAlpha = 100;
+
+  //スマホ用
+  var finger=new Array;
+  for(var i=0;i<10;i++){
+    finger[i]={
+      x:0,
+      y:0,
+      x1:0,
+      y1:0,
+      color:"rgb(255,0,0)"
+    };
+  }
+
+  //タッチした瞬間座標を取得
+  canvas.addEventListener("touchstart",function(e){
+    e.preventDefault();
+    draw = true;
+    var rect = e.target.getBoundingClientRect();
+    ctx.lineWidth = 10;
+    ctx.globalAlpha = 100;
+    undoImage = ctx.getImageData(0, 0,canvas.width,canvas.height);
+    for(var i=0;i<finger.length;i++){
+      if (e.touches[i]) {
+        finger[i].x1 = e.touches[i].clientX-rect.left;
+        finger[i].y1 = e.touches[i].clientY-rect.top;
+      }
+    }
+  });
+
+  //タッチして動き出したら描画
+  canvas.addEventListener("touchmove",function(e){
+    e.preventDefault();
+    var rect = e.target.getBoundingClientRect();
+    for(var i=0;i<finger.length;i++){
+      if (e.touches[i]) {
+        finger[i].x = e.touches[i].clientX-rect.left;
+        finger[i].y = e.touches[i].clientY-rect.top;
+        ctx.beginPath();
+        ctx.moveTo(finger[i].x1,finger[i].y1);
+        ctx.lineTo(finger[i].x,finger[i].y);
+        ctx.lineCap="round";
+        ctx.stroke();
+        finger[i].x1=finger[i].x;
+        finger[i].y1=finger[i].y;
+      }
+    }
+  });
 }
 
 function initPictures() {
@@ -41,6 +89,7 @@ const app = new Vue({
     },
     canvas: null,
     ctx: null,
+    selectedColor: [0,0,0,255]
   },
   mounted: function() {
     initNewCanvas(this);
@@ -49,17 +98,26 @@ const app = new Vue({
   computed: {},
   methods: {
     mousedown: function(e) {
-      this.$set(this.mouse, 'x1', e.offsetX);
-      this.$set(this.mouse, 'y1', e.offsetY);
-      this.$set(this, 'isDrawing', true);
-      this.$forceUpdate();
+      if (this.mode == 'black') {
+        this.$set(this.mouse, 'x1', e.offsetX);
+        this.$set(this.mouse, 'y1', e.offsetY);
+        this.$set(this, 'isDrawing', true);
+      }
     },
-    mouseup: function() {
-      this.$set(this, 'isDrawing', false);
-      this.$forceUpdate();
+    mouseup: function(e) {
+      if (this.mode == 'black') {
+        this.$set(this, 'isDrawing', false);
+      } else {
+        this.$set(this.mouse, 'x1', e.offsetX);
+        this.$set(this.mouse, 'y1', e.offsetY);
+
+        // 一括でぬる
+        // この座標の色を取得する
+        this.bucketPaint(this.mouse.x1, this.mouse.y1, this.selectedColor.join(','));
+      }
     },
     mousemove: function(e) {
-      if (this.isDrawing == false) {
+      if (this.isDrawing == false || this.mode != 'black') {
         return;
       }
       var rect = e.target.getBoundingClientRect();
@@ -77,63 +135,110 @@ const app = new Vue({
       this.resetCanvas();
       this.image.src = this.picturesRaw[index].data;
       this.ctx.drawImage(this.image, 0, 0);
-      this.mode = 'color';
-      // this.$forceUpdate();
-      console.log('nuttayo')
+      this.$set(this, 'mode', 'color');
+      this.$set(this, 'isDrawing', false);
     },
     savePicture: function() {
       $('[name="canvas_data"]').val(this.canvas.toDataURL());
     },
     resetCanvas: function() {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.$forceUpdate();
+    },
+    selectColor: function(color) {
+      console.log(color);
+      this.$set(this, 'selectedColor', [255,0,0,255]);
+    },
+    bucketPaint: function(x, y, currentColor) {
+      // console.log('currentColor: ' + currentColor);
+      var lx,rx,uy,dy;
+      var i;
+      var nurie;
+
+      var sIndex = 0;
+      var eIndex = 1;
+      var startIndex = [];
+      var endIndex   = [];
+      startIndex.push({
+        x: x,
+        y: y,
+      });
+
+      do {
+        sIndex++;
+        lx = rx = x;
+        uy = dy = y;
+
+        // buffer と sindex が同じだったら
+        // if ( ++Start_Idx == &Buffer[MAXSIZE] ) {
+        //   Start_Idx = Buffer;
+        // }
+        if (sIndex == 300) {
+          continue;
+        }
+
+        if (this.ctx.getImageData(lx, uy, 1, 1).data.join(',') == currentColor) {
+          continue;
+        }
+
+        /* 右方向の境界を探す */
+        while (rx < 299) {
+          if (this.ctx.getImageData(rx, uy, 1, 1).data.join(',') == currentColor) {
+            // console.log('rx break: ' + rx);
+            break;
+          }
+          rx++;
+        }
+
+        /* 左方向の境界を探す */
+        while (lx > 0) {
+          if (this.ctx.getImageData(lx, uy, 1, 1).data.join(',') == currentColor) {
+            // console.log('lx break: ' + lx);
+            break;
+          }
+          lx--;
+        }
+
+        for (i = lx; i <= rx; i++) {
+          nurie = this.ctx.getImageData(i, uy, 10, 10);
+          nurie.data[0] = this.selectedColor[0];
+          nurie.data[1] = this.selectedColor[1];
+          nurie.data[2] = this.selectedColor[2];
+          nurie.data[3] = this.selectedColor[3];
+          this.ctx.putImageData(nurie, i, y);
+        }
+
+        /* 真上のスキャンラインを走査する */
+        if ( --uy >= 0 ) {
+          console.log('start lx: ' + lx + ', rx: ' + rx);
+          while ( lx <= rx ) {
+            console.log(lx + ', ' +rx);
+            /* 非領域色を飛ばす */
+            for ( ; lx < rx ; lx++ ) {
+              if (this.ctx.getImageData(lx, y, 1, 1).data.join(',') == currentColor) {
+                break;
+              }
+            }
+
+            if (this.ctx.getImageData(lx, y, 1, 1).data.join(',') != currentColor) {
+              break;
+            }
+
+            /* 領域色を飛ばす */
+            for ( ; lx <= rx ; lx++ ) {
+              if (this.ctx.getImageData(lx, y, 1, 1).data.join(',') != currentColor) {
+                break;
+              }
+            }
+            // End_Idx->sx = lx - 1;
+            // End_Idx->sy = y;
+            // if ( ++End_Idx == &Buffer[MAXSIZE] ) End_Idx = Buffer;
+          }
+          console.log('end start lx: ' + lx + ', rx: ' + rx);
+        }
+
+        // console.log (sIndex);
+
+      } while (sIndex != eIndex);
     },
   },
 });
-
-// //スマホ用
-// var finger=new Array;
-// for(var i=0;i<10;i++){
-//   finger[i]={
-//     x:0,
-//     y:0,
-//     x1:0,
-//     y1:0,
-//     color:"rgb(255,0,0)"
-//   };
-// }
-
-// //タッチした瞬間座標を取得
-// canvas.addEventListener("touchstart",function(e){
-//   e.preventDefault();
-//   draw = true;
-//   var rect = e.target.getBoundingClientRect();
-//   ctx.lineWidth = 10;
-//   ctx.globalAlpha = 100;
-//   undoImage = ctx.getImageData(0, 0,canvas.width,canvas.height);
-//   for(var i=0;i<finger.length;i++){
-//     if (e.touches[i]) {
-//       finger[i].x1 = e.touches[i].clientX-rect.left;
-//       finger[i].y1 = e.touches[i].clientY-rect.top;
-//     }
-//   }
-// });
-
-// //タッチして動き出したら描画
-// canvas.addEventListener("touchmove",function(e){
-//   e.preventDefault();
-//   var rect = e.target.getBoundingClientRect();
-//   for(var i=0;i<finger.length;i++){
-//     if (e.touches[i]) {
-//       finger[i].x = e.touches[i].clientX-rect.left;
-//       finger[i].y = e.touches[i].clientY-rect.top;
-//       ctx.beginPath();
-//       ctx.moveTo(finger[i].x1,finger[i].y1);
-//       ctx.lineTo(finger[i].x,finger[i].y);
-//       ctx.lineCap="round";
-//       ctx.stroke();
-//       finger[i].x1=finger[i].x;
-//       finger[i].y1=finger[i].y;
-//     }
-//   }
-// });

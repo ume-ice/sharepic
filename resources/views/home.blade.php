@@ -8,16 +8,26 @@
 <div id="app" v-cloak>
   <div>
     <form method="POST">
+      <div v-show="1">
+        <div>dev status</div>
+        <div>mode: ${mode}</div>
+        <div>mouse x: ${mouse.x}, y: ${mouse.y}, x1: ${mouse.x1}, y1: ${mouse.y1}</div>
+        <div>isDrawing: ${isDrawing}</div>
+      </div>
       <div v-show="mode === 'black'">
         <div>新規作成（書く）</div>
         <p>タイトル：<br><input type="text" name="title" v-model="title"></p>
       </div>
       <div v-show="mode === 'color'">
         <div>新規作成（塗る）</div>
-        <a href="#">色を選択する</a>
+        <div style="margin: 10px 0px;">
+          <div @click="selectColor('red')" style="display: inline-block;width: 20px;height: 20px;margin-right: 10px;background: red;"></div>
+          <div @click="selectColor('blue')" style="display: inline-block;width: 20px;height: 20px;margin-right: 10px;background: blue;"></div>
+          <div @click="selectColor('green')" style="display: inline-block;width: 20px;height: 20px;margin-right: 10px;background: green;"></div>
+        </div>
       </div>
       <div>
-        <canvas id="new-canvas" width="300" height="300" style="border:1px solid;" @mousedown="mousedown($event)" @mousemove="mousemove($event)" @mouseup="mouseup"></canvas>
+        <canvas id="new-canvas" width="300" height="300" style="border:1px solid;" @mousedown="mousedown($event)" @mousemove="mousemove($event)" @mouseup="mouseup($event)"></canvas>
       </div>
       <button id="reset" @click.stop.prevent="resetCanvas">リセット</button>
       <input type="hidden" name="id" value="1">
